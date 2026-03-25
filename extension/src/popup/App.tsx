@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { THEME } from '@/popup/theme'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
-import CharacterSelect from '@/components/CharacterSelect'  
+import CharacterSelect from '@/components/CharacterSelect'
 export default function App() {
   const [dark, setDark] = useState(true)
 

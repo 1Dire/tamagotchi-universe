@@ -1,9 +1,9 @@
 // src/popup/theme.ts
 export const THEME = {
   dark: {
-    bg:         'bg-[#080808]',
-    surface:    'bg-[#111]',
-    surface2:   'bg-[#1a1a1a]',
+  bg:      'bg-[#1a1a1a]',  
+  surface: 'bg-[#222222]',  
+  surface2:'bg-[#2a2a2a]', 
     divider:    'border-[#222]',
     text:       'text-[#F0F0F0]',
     textMid:    'text-[#888]',
