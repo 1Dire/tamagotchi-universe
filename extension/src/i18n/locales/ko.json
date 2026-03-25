@@ -8,11 +8,13 @@
     "upgrade": "PRO 업그레이드 →",
     "names": {
       "cat": "고양이",
+      "gray_cat": "회색 고양이",
       "cyber": "사이버펑크",
       "ninja": "닌자"
     },
     "desc": {
       "cat": "7가지 애니메이션 포함",
+      "gray_cat": "8가지 애니메이션 포함",
       "cyber": "네온 이펙트 포함",
       "ninja": "은신 모션 포함"
     }

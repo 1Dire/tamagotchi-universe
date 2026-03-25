@@ -8,11 +8,13 @@
     "upgrade": "Upgrade to PRO →",
     "names": {
       "cat": "Cat",
+      "gray_cat": "Gray Cat",
       "cyber": "Cyberpunk",
       "ninja": "Ninja"
     },
     "desc": {
       "cat": "7 animations included",
+      "gray_cat": "8 animations included",
       "cyber": "Neon effects included",
       "ninja": "Stealth motion included"
     }
