@@ -1,0 +1,29 @@
+{
+  "character": {
+    "select": "캐릭터를 선택하세요",
+    "free": "FREE",
+    "pro": "PRO",
+    "locked": "잠긴 캐릭터",
+    "confirm": "선택 완료",
+    "upgrade": "PRO 업그레이드 →",
+    "names": {
+      "cat": "고양이",
+      "cyber": "사이버펑크",
+      "ninja": "닌자"
+    },
+    "desc": {
+      "cat": "7가지 애니메이션 포함",
+      "cyber": "네온 이펙트 포함",
+      "ninja": "은신 모션 포함"
+    }
+  },
+  "footer": {
+    "login": "로그인",
+    "plaza": "Plaza 입장"
+  },
+  "common": {
+    "back": "← 뒤로",
+    "next": "다음 →",
+    "start": "시작하기 →"
+  }
+}

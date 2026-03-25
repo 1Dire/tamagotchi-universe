@@ -1,22 +1,38 @@
-import crxLogo from '@/assets/crx.svg'
-import reactLogo from '@/assets/react.svg'
-import viteLogo from '@/assets/vite.svg'
-import HelloWorld from '@/components/HelloWorld'
-import './App.css'
-
+// src/popup/App.tsx
+import { useState, useEffect } from 'react'
+import { THEME } from '@/popup/theme'
+import Header from '@/components/Header'
+import Footer from '@/components/Footer'
+import CharacterSelect from '@/components/CharacterSelect'  
 export default function App() {
+  const [dark, setDark] = useState(true)
+
+  useEffect(() => {
+    if (typeof chrome === 'undefined' || !chrome.storage) return
+    chrome.storage.sync.get('darkMode', (data) => {
+      if (data.darkMode !== undefined) setDark(data.darkMode as boolean)
+    })
+  }, [])
+
+  const toggleDark = () => {
+    const next = !dark
+    setDark(next)
+    if (typeof chrome === 'undefined' || !chrome.storage) return
+    chrome.storage.sync.set({ darkMode: next })
+  }
+
+  const T = dark ? THEME.dark : THEME.light
+
   return (
-    <div>
-      <a href="https://vite.dev" target="_blank" rel="noreferrer">
-        <img src={viteLogo} className="logo" alt="Vite logo" />
-      </a>
-      <a href="https://reactjs.org/" target="_blank" rel="noreferrer">
-        <img src={reactLogo} className="logo react" alt="React logo" />
-      </a>
-      <a href="https://crxjs.dev/vite-plugin" target="_blank" rel="noreferrer">
-        <img src={crxLogo} className="logo crx" alt="crx logo" />
-      </a>
-      <HelloWorld msg="Vite + React + CRXJS" />
+    <div className={`w-[320px] ${T.bg} ${T.text} overflow-hidden select-none transition-colors duration-200`}>
+      <style>{`
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        * { font-family: 'Pretendard', sans-serif; }
+      `}</style>
+
+      <Header T={T} />
+      <CharacterSelect T={T} onConfirm={(id) => console.log(id)} />
+      <Footer T={T} dark={dark} onToggleDark={toggleDark} />
     </div>
   )
 }
