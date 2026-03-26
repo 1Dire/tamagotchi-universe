@@ -168,7 +168,7 @@ export default function CharacterSelect({ T, onConfirm }: Props) {
                 ? 'bg-orange-500 border-orange-500 text-white shadow-md' 
                 : `${T.divider} hover:bg-gray-100/10 active:bg-gray-100/20`}
             `}
-          >
+          > 
             {a}
           </button>
         ))}
