@@ -3,6 +3,10 @@
   "msg_error_console": "뭔가 잘못됐어요 🔍 콘솔을 확인해주세요",
   "msg_storage_error": "저장소를 불러올 수 없어요 😢",
   "msg_platform_created": "발판을 만들었어요! 🪵",
+  "ctx_platform_create": "플랫폼 생성",
+  "ctx_translate_page": "페이지 번역",
+  "ctx_translate_partial": "부분 번역",
+  "translate_partial_hint": "번역할 텍스트를 드래그해서 선택하세요",
   "draw_hint": "드래그해서 발판을 그리세요",
   "draw_cancel": "✕ 취소",
   "character": {

@@ -9,6 +9,7 @@ import { useBubbles } from "@/hooks/useBubbles";
 import { useAutoWalk, Platform } from "@/hooks/useAutoWalk";
 import { CHARACTERS } from "@/components/CharacterSelect";
 import { TamagotchiData } from "@/types/tamagotchi";
+import TranslationPanel from "@/components/TranslationPanel";
 
 const CHAR_SCALE = 1.5;
 const CHAR_W     = 32 * CHAR_SCALE;
@@ -19,7 +20,7 @@ const MIN_W      = 40;
 const isChromeStorage = typeof chrome !== "undefined" && !!chrome.storage;
 
 export default function App() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { bubbles, addBubble, removeBubble, langReady } = useBubbles();
 
   const [characterId, setCharacterId] = useState<string | null>(null);
@@ -31,6 +32,12 @@ export default function App() {
   const [initialX, setInitialX]       = useState<number | undefined>(undefined);
   const [initialY, setInitialY]       = useState<number | undefined>(undefined);
   const [ready, setReady]             = useState(false);
+
+  // 번역
+  const [translationText, setTranslationText]   = useState('');
+  const [translationLoading, setTranslationLoading] = useState(false);
+  const [showTranslation, setShowTranslation]   = useState(false);
+  const [partialMode, setPartialMode]           = useState(false);
 
   // 발판 변경 시 localStorage에 저장 (도메인별)
   useEffect(() => {
@@ -96,6 +103,60 @@ export default function App() {
     setDrawMode(val);
   }, []);
 
+  // 번역 실행 (Claude API)
+  const translate = useCallback(async (textToTranslate: string) => {
+    if (!textToTranslate.trim()) return;
+    setShowTranslation(true);
+    setTranslationLoading(true);
+    setTranslationText('');
+    try {
+      const targetLang = i18n.language === 'ko' ? '한국어' : i18n.language === 'ja' ? '일본어' : i18n.language === 'zh' ? '중국어' : 'English';
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          messages: [{
+            role: 'user',
+            content: `다음 텍스트를 ${targetLang}로 번역해줘. 번역 결과만 출력하고 다른 말은 하지 마.\n\n${textToTranslate.slice(0, 2000)}`,
+          }],
+        }),
+      });
+      const data = await res.json();
+      setTranslationText(data.content?.[0]?.text ?? '번역 실패');
+    } catch {
+      setTranslationText('번역 중 오류가 발생했어요.');
+    } finally {
+      setTranslationLoading(false);
+    }
+  }, [i18n.language]);
+
+  // 페이지 전체 번역
+  const translatePage = useCallback(() => {
+    const text = document.body.innerText.slice(0, 2000);
+    translate(text);
+  }, [translate]);
+
+  // 부분 번역 모드 — 마법봉 커서 + mouseup 시 선택 텍스트 번역
+  useEffect(() => {
+    if (!partialMode) return;
+    document.body.style.cursor = 'crosshair';
+
+    const onMouseUp = () => {
+      const selected = window.getSelection()?.toString().trim();
+      setPartialMode(false);
+      document.body.style.cursor = '';
+      if (selected) translate(selected);
+    };
+
+    document.addEventListener('mouseup', onMouseUp);
+    return () => {
+      document.removeEventListener('mouseup', onMouseUp);
+      document.body.style.cursor = '';
+    };
+  }, [partialMode, translate]);
+
   const enterDrawMode = useCallback(() => {
     setDrawModeSync(true);
     pause();
@@ -119,12 +180,40 @@ export default function App() {
 
   const menuItems = [
     { icon: '🪵', label: t("ctx_platform_create"), onClick: enterDrawMode },
+    { icon: '🌐', label: t("ctx_translate_page"),    onClick: translatePage },
+    { icon: '🪄', label: t("ctx_translate_partial"), onClick: () => setPartialMode(true) },
   ];
 
   if (!config || !characterId || !ready) return null;
 
   return (
     <>
+      {/* 번역 패널 */}
+      {showTranslation && (
+        <TranslationPanel
+          text={translationText}
+          loading={translationLoading}
+          dark={dark}
+          onClose={() => setShowTranslation(false)}
+        />
+      )}
+
+      {/* 부분 번역 모드 안내 */}
+      {partialMode && ReactDOM.createPortal(
+        <div style={{
+          position: 'fixed', bottom: 24, left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(0,0,0,0.75)', color: '#fff',
+          fontSize: 13, fontWeight: 500, padding: '8px 18px',
+          borderRadius: 20, zIndex: 2147483646, pointerEvents: 'none',
+          fontFamily: "'Noto Sans KR',sans-serif",
+          backdropFilter: 'blur(8px)',
+        }}>
+          🪄 {t("translate_partial_hint")}
+        </div>,
+        document.body
+      )}
+
       {/* 플랫폼 */}
       {platforms.map((p) => (
         <div

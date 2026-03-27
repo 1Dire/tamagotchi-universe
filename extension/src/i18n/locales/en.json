@@ -3,6 +3,10 @@
   "msg_error_console": "Something went wrong 🔍 Check the console",
   "msg_storage_error": "Couldn't load saved data 😢",
   "msg_platform_created": "Platform created! 🪵",
+  "ctx_platform_create": "Create Platform",
+  "ctx_translate_page": "Translate Page",
+  "ctx_translate_partial": "Translate Selection",
+  "translate_partial_hint": "Drag to select text to translate",
   "draw_hint": "Drag to draw a platform",
   "draw_cancel": "✕ Cancel",
   "character": {
