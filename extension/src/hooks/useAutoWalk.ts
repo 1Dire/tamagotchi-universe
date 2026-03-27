@@ -189,6 +189,13 @@ export function useAutoWalk(
           return;
         }
 
+        // ✅ 천장 충돌 — 위로 날아가도 튕겨서 내려옴
+        if (nextY < 0) {
+          velocityY.current = Math.abs(velocityY.current) * 0.5;
+          setState((prev) => ({ ...prev, screenY: 0 }));
+          return;
+        }
+
         setState((prev) => ({ ...prev, screenY: nextY }));
         return;
       }
@@ -290,6 +297,8 @@ export function useAutoWalk(
       const { x, screenY } = stateRef.current;
       localStorage.setItem('tamagotchi_pos_ratio',   String(x / window.innerWidth));
       localStorage.setItem('tamagotchi_pos_ratio_y', String(screenY / window.innerHeight));
+
+      velocityY.current = Math.max(velocityY.current, -8);
 
       const offset     = platOffsetRef.current;
       const onPlatform = getStandingPlatform(x, screenY, characterW, characterH, platformsRef.current, offset);
