@@ -1,7 +1,10 @@
 {
-  "msg_hungry":        "I'm hungry~ Feed me! 🍚",
+  "msg_hungry": "I'm hungry~ Feed me! 🍚",
   "msg_error_console": "Something went wrong 🔍 Check the console",
   "msg_storage_error": "Couldn't load saved data 😢",
+  "msg_platform_created": "Platform created! 🪵",
+  "draw_hint": "Drag to draw a platform",
+  "draw_cancel": "✕ Cancel",
   "character": {
     "select": "Select a character",
     "free": "FREE",
@@ -9,26 +12,9 @@
     "locked": "Locked",
     "confirm": "Select",
     "upgrade": "Upgrade to PRO →",
-    "names": {
-      "cat": "Cat",
-      "gray_cat": "Gray Cat",
-      "cyber": "Cyberpunk",
-      "ninja": "Ninja"
-    },
-    "desc": {
-      "cat": "7 animations included",
-      "gray_cat": "8 animations included",
-      "cyber": "Neon effects included",
-      "ninja": "Stealth motion included"
-    }
+    "names": { "cat": "Cat", "gray_cat": "Gray Cat", "cyber": "Cyberpunk", "ninja": "Ninja" },
+    "desc": { "cat": "7 animations included", "gray_cat": "8 animations included", "cyber": "Neon effects included", "ninja": "Stealth motion included" }
   },
-  "footer": {
-    "login": "Login",
-    "plaza": "Enter Plaza"
-  },
-  "common": {
-    "back": "← Back",
-    "next": "Next →",
-    "start": "Get Started →"
-  }
+  "footer": { "login": "Login", "plaza": "Enter Plaza" },
+  "common": { "back": "← Back", "next": "Next →", "start": "Get Started →" }
 }

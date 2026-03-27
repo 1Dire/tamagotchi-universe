@@ -29,7 +29,14 @@ export default function App() {
   const [platforms, setPlatforms]     = useState<Platform[]>([]);
   const [preview, setPreview]         = useState<{ x: number; y: number; width: number } | null>(null);
   const [initialX, setInitialX]       = useState<number | undefined>(undefined);
-  const [ready, setReady]             = useState(false); // x + characterId 둘 다 준비됐는지
+  const [initialY, setInitialY]       = useState<number | undefined>(undefined);
+  const [ready, setReady]             = useState(false);
+
+  // 발판 변경 시 localStorage에 저장 (도메인별)
+  useEffect(() => {
+    if (!ready) return;
+    localStorage.setItem('tamagotchi_platforms', JSON.stringify(platforms));
+  }, [platforms, ready]);
 
   const drawModeRef  = useRef(false);
   const drawStart    = useRef<{ x: number; y: number } | null>(null);
@@ -39,17 +46,20 @@ export default function App() {
   const platOffset = config?.platOffset ?? 0;
 
   const { x, screenY, anim, facingLeft, onDragStart, pause, resume, checkFall } =
-    useAutoWalk(CHAR_W, CHAR_H, platforms, platOffset, ready ? initialX : undefined);
+    useAutoWalk(CHAR_W, CHAR_H, platforms, platOffset, ready ? initialX : undefined, ready ? initialY : undefined);
 
-  // x 위치 복원 (마운트 즉시)
+  // x 위치 + 발판 복원 — localStorage (도메인별)
   useEffect(() => {
-    if (!isChromeStorage) { setReady(true); return; }
-    chrome.storage.sync.get("tamagotchi_pos_ratio", (res) => {
-      if (typeof res.tamagotchi_pos_ratio === "number") {
-        setInitialX(res.tamagotchi_pos_ratio * window.innerWidth);
-      }
-      setReady(true);
-    });
+    const ratio = parseFloat(localStorage.getItem('tamagotchi_pos_ratio') ?? '');
+    if (!isNaN(ratio)) setInitialX(ratio * window.innerWidth);
+
+    const ratioY = parseFloat(localStorage.getItem('tamagotchi_pos_ratio_y') ?? '');
+    if (!isNaN(ratioY)) setInitialY(ratioY * window.innerHeight);
+
+    const saved = localStorage.getItem('tamagotchi_platforms');
+    if (saved) { try { setPlatforms(JSON.parse(saved)); } catch {} }
+
+    setReady(true);
   }, []);
 
   // darkMode 로드 + 실시간 반영
@@ -108,7 +118,7 @@ export default function App() {
   }, [resume]);
 
   const menuItems = [
-    { icon: '🪵', label: '플랫폼 생성', onClick: enterDrawMode },
+    { icon: '🪵', label: t("ctx_platform_create"), onClick: enterDrawMode },
   ];
 
   if (!config || !characterId || !ready) return null;
@@ -179,6 +189,7 @@ export default function App() {
                   setPlatforms((ps) => [...ps, {
                     id: Date.now(), x: Math.min(start.x, e.clientX), y: start.y, width,
                   }]);
+                  addBubble(t("msg_platform_created"));
                 }
               }
               exitDrawMode();
@@ -197,7 +208,7 @@ export default function App() {
             animation: 'slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards',
           }}>
             <p style={{ color: '#fff', fontSize: 13, fontWeight: 500, margin: 0, opacity: 0.7, whiteSpace: 'nowrap', fontFamily: "'Noto Sans KR',sans-serif" }}>
-              드래그해서 발판을 그리세요
+              {t("draw_hint")}
             </p>
             <button
               onClick={exitDrawMode}
@@ -211,7 +222,7 @@ export default function App() {
               onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.22)')}
               onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.12)')}
             >
-              ✕ 취소
+              {t("draw_cancel")}
             </button>
           </div>
         </>,

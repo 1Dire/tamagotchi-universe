@@ -4,10 +4,10 @@ import { useState, useEffect, useRef, useCallback } from "react";
 type Anim = "IDLE" | "WALK" | "RUN" | "JUMP" | "HURT";
 
 export interface Platform {
-  id:     number;
-  x:      number;
-  y:      number;
-  width:  number;
+  id:    number;
+  x:     number;
+  y:     number;
+  width: number;
 }
 
 interface CatState {
@@ -29,8 +29,8 @@ const SPEED: Record<Anim, number> = {
 };
 
 const EDGE_MARGIN = 20;
-const GRAVITY     = 0.6;
-const BOUNCE      = 0.2;
+const GRAVITY     = 0.5;
+const BOUNCE      = 0.1;
 const LAND_TOL    = 8;
 
 function pickNextAnim(): Anim {
@@ -58,17 +58,17 @@ function getStandingPlatform(
   return null;
 }
 
-// 자주 쓰는 계산 인라인 함수
-const getFloorY   = (h: number) => window.innerHeight - h - 20;
-const getMinX     = () => EDGE_MARGIN;
-const getMaxX     = (w: number) => window.innerWidth - w - EDGE_MARGIN;
+const getFloorY = (h: number) => window.innerHeight - h - 20;
+const getMinX   = () => EDGE_MARGIN;
+const getMaxX   = (w: number) => window.innerWidth - w - EDGE_MARGIN;
 
 export function useAutoWalk(
   characterW = 48,
   characterH = 48,
   platforms:  Platform[] = [],
   platOffset  = 0,
-  initialX?:  number
+  initialX?:  number,
+  initialY?:  number,
 ) {
   const platformsRef    = useRef(platforms);
   platformsRef.current  = platforms;
@@ -85,15 +85,16 @@ export function useAutoWalk(
   const stateRef    = useRef(state);
   stateRef.current  = state;
 
-  const isDragging  = useRef(false);
-  const isFalling   = useRef(false);
-  const isPaused    = useRef(false);
-  const velocityY   = useRef(0);
+  const isDragging   = useRef(false);
+  const isFalling    = useRef(false);
+  const isPaused     = useRef(false);
+  const velocityY    = useRef(0);
   const animTimerRef = useRef<number | null>(null);
-  const moveTimerRef = useRef<number | null>(null);
-  const fallTimerRef = useRef<number | null>(null);
+  const rafRef       = useRef<number | null>(null); // ✅ rAF 핸들
 
   const scheduleBehaviorRef = useRef<() => void>(() => {});
+  const startFallingRef     = useRef<() => void>(() => {});
+
   scheduleBehaviorRef.current = () => {
     if (isFalling.current || isPaused.current) return;
     const next = pickNextAnim();
@@ -115,22 +116,85 @@ export function useAutoWalk(
 
   const scheduleBehavior = useCallback(() => scheduleBehaviorRef.current(), []);
 
-  // initialX 복원 — isPaused로 walk 잠깐 멈추고 적용
+  // initialX/Y 복원
   useEffect(() => {
-    if (initialX === undefined) return;
+    if (initialX === undefined && initialY === undefined) return;
     isPaused.current = true;
-    setState((prev) => ({ ...prev, x: initialX }));
+    setState((prev) => ({
+      ...prev,
+      ...(initialX !== undefined ? { x: initialX } : {}),
+      ...(initialY !== undefined ? { screenY: initialY } : {}),
+    }));
     requestAnimationFrame(() => {
       isPaused.current = false;
-      scheduleBehaviorRef.current();
+      const { x, screenY } = stateRef.current;
+      const offset = platOffsetRef.current;
+      const onPlatform = getStandingPlatform(x, screenY, characterW, characterH, platformsRef.current, offset);
+      const onFloor    = Math.abs(screenY - getFloorY(characterH)) < LAND_TOL;
+      if (!onPlatform && !onFloor) startFallingRef.current();
+      else scheduleBehaviorRef.current();
     });
-  }, [initialX]);
+  }, [initialX, initialY, characterW, characterH]);
 
-  // 이동 루프
+  // ✅ 메인 루프 — setInterval 대신 rAF, 값 변할 때만 setState
   useEffect(() => {
-    const tick = () => {
-      if (isDragging.current || isFalling.current || isPaused.current) return;
+    let lastTime = 0;
+
+    const loop = (now: number) => {
+      rafRef.current = requestAnimationFrame(loop);
+
+      const dt = now - lastTime;
+      if (dt < 16) return; // 60fps 이상 건너뜀
+      lastTime = now;
+
       const { anim, facingLeft, x, screenY } = stateRef.current;
+
+      // 낙하 물리
+      if (isFalling.current && !isDragging.current) {
+        velocityY.current += GRAVITY;
+        const nextY  = screenY + velocityY.current;
+        const floor  = getFloorY(characterH);
+        const offset = platOffsetRef.current;
+
+        // 플랫폼 착지 체크
+        for (const p of platformsRef.current) {
+          const xOverlap = x + characterW > p.x + 4 && x < p.x + p.width - 4;
+          if (xOverlap && screenY + characterH + offset <= p.y + LAND_TOL && nextY + characterH + offset >= p.y) {
+            const bounce = Math.abs(velocityY.current) * BOUNCE;
+            if (bounce < 1) {
+              velocityY.current = 0;
+              isFalling.current = false;
+              setState((prev) => ({ ...prev, screenY: p.y - characterH - offset, anim: "IDLE" }));
+              scheduleBehaviorRef.current();
+            } else {
+              velocityY.current = -bounce;
+              setState((prev) => ({ ...prev, screenY: p.y - characterH - offset }));
+            }
+            return;
+          }
+        }
+
+        // 바닥 착지
+        if (nextY >= floor) {
+          const bounce = Math.abs(velocityY.current) * BOUNCE;
+          if (bounce < 1) {
+            velocityY.current = 0;
+            isFalling.current = false;
+            setState((prev) => ({ ...prev, screenY: floor, anim: "IDLE" }));
+            scheduleBehaviorRef.current();
+          } else {
+            velocityY.current = -bounce;
+            setState((prev) => ({ ...prev, screenY: floor }));
+          }
+          return;
+        }
+
+        setState((prev) => ({ ...prev, screenY: nextY }));
+        return;
+      }
+
+      // 이동
+      if (isDragging.current || isPaused.current || isFalling.current) return;
       const speed = SPEED[anim];
       if (speed === 0) return;
 
@@ -143,18 +207,18 @@ export function useAutoWalk(
         const pMax = platform.x + platform.width - characterW;
         if      (nx <= pMin) setState((p) => ({ ...p, x: pMin, facingLeft: false }));
         else if (nx >= pMax) setState((p) => ({ ...p, x: pMax, facingLeft: true }));
-        else                 setState((p) => ({ ...p, x: nx }));
+        else if (nx !== x)   setState((p) => ({ ...p, x: nx })); // ✅ 변할 때만
       } else {
         const min = getMinX();
         const max = getMaxX(characterW);
         if      (nx <= min) setState((p) => ({ ...p, x: min, facingLeft: false }));
         else if (nx >= max) setState((p) => ({ ...p, x: max, facingLeft: true }));
-        else                setState((p) => ({ ...p, x: nx }));
+        else if (nx !== x)  setState((p) => ({ ...p, x: nx })); // ✅ 변할 때만
       }
     };
 
-    moveTimerRef.current = window.setInterval(tick, 1000 / 60);
-    return () => { if (moveTimerRef.current) window.clearInterval(moveTimerRef.current); };
+    rafRef.current = requestAnimationFrame(loop);
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
   }, [characterW, characterH]);
 
   // 행동 스케줄 시작
@@ -163,52 +227,13 @@ export function useAutoWalk(
     return () => { if (animTimerRef.current) window.clearTimeout(animTimerRef.current); };
   }, [scheduleBehavior]);
 
-  // 낙하 물리
   const startFalling = useCallback(() => {
     isFalling.current = true;
+    if (animTimerRef.current) window.clearTimeout(animTimerRef.current);
     setState((prev) => ({ ...prev, anim: "HURT" }));
-    if (fallTimerRef.current) window.clearInterval(fallTimerRef.current);
+  }, []);
 
-    fallTimerRef.current = window.setInterval(() => {
-      velocityY.current += GRAVITY;
-      setState((prev) => {
-        const offset = platOffsetRef.current;
-        const nextY  = prev.screenY + velocityY.current;
-        const floor  = getFloorY(characterH);
-
-        for (const p of platformsRef.current) {
-          const xOverlap = prev.x + characterW > p.x + 4 && prev.x < p.x + p.width - 4;
-          if (xOverlap && prev.screenY + characterH + offset <= p.y + LAND_TOL && nextY + characterH + offset >= p.y) {
-            const bounce = Math.abs(velocityY.current) * BOUNCE;
-            if (bounce < 1) {
-              velocityY.current = 0;
-              isFalling.current = false;
-              if (fallTimerRef.current) window.clearInterval(fallTimerRef.current);
-              scheduleBehavior();
-              return { ...prev, screenY: p.y - characterH - offset, anim: "IDLE" };
-            }
-            velocityY.current = -bounce;
-            return { ...prev, screenY: p.y - characterH - offset };
-          }
-        }
-
-        if (nextY >= floor) {
-          const bounce = Math.abs(velocityY.current) * BOUNCE;
-          if (bounce < 1) {
-            velocityY.current = 0;
-            isFalling.current = false;
-            if (fallTimerRef.current) window.clearInterval(fallTimerRef.current);
-            scheduleBehavior();
-            return { ...prev, screenY: floor, anim: "IDLE" };
-          }
-          velocityY.current = -bounce;
-          return { ...prev, screenY: floor };
-        }
-
-        return { ...prev, screenY: nextY };
-      });
-    }, 1000 / 60);
-  }, [characterW, characterH, scheduleBehavior]);
+  startFallingRef.current = startFalling;
 
   const pause = useCallback(() => {
     isPaused.current = true;
@@ -236,7 +261,6 @@ export function useAutoWalk(
     isDragging.current = true;
     isFalling.current  = false;
     velocityY.current  = 0;
-    if (fallTimerRef.current) window.clearInterval(fallTimerRef.current);
     if (animTimerRef.current) window.clearTimeout(animTimerRef.current);
     setState((prev) => ({ ...prev, anim: "IDLE" }));
 
@@ -264,11 +288,8 @@ export function useAutoWalk(
       window.removeEventListener("mouseup",   onMouseUp);
 
       const { x, screenY } = stateRef.current;
-
-      // 비율로 저장 — 화면 크기가 달라도 근사 위치 복원
-      if (typeof chrome !== "undefined" && chrome.storage) {
-        chrome.storage.sync.set({ tamagotchi_pos_ratio: x / window.innerWidth });
-      }
+      localStorage.setItem('tamagotchi_pos_ratio',   String(x / window.innerWidth));
+      localStorage.setItem('tamagotchi_pos_ratio_y', String(screenY / window.innerHeight));
 
       const offset     = platOffsetRef.current;
       const onPlatform = getStandingPlatform(x, screenY, characterW, characterH, platformsRef.current, offset);
