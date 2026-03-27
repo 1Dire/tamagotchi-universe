@@ -26,12 +26,10 @@ export default defineManifest({
       run_at: "document_end",
     },
   ],
-  // [수정 핵심 2] 리소스 접근성 강화 (캐릭터 스프라이트 등)
   web_accessible_resources: [
     {
-      // public 폴더의 자산들이 루트로 복사되므로 경로를 넓게 잡는 것이 좋네.
-   resources: ["Sprites/**", "assets/**", "*.png"],
-      matches: ["http://*/*", "https://*/*"],
+ resources: ["Sprites/**", "assets/**", "*.png", "src/styles/tailwind.css"],  // ← 추가
+    matches: ["http://*/*", "https://*/*"],
     },
   ],
   side_panel: {

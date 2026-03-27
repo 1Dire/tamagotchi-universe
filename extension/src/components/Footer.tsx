@@ -1,14 +1,13 @@
 // src/components/Footer.tsx
 import { FaMoon, FaSun } from "react-icons/fa";
 import { useTranslation } from "react-i18next";
-import { Theme } from "@/popup/theme";
+import { ThemeType } from "@/popup/theme";
 
 interface Props {
-  T: Theme;
+  T: ThemeType;
   dark: boolean;
   onToggleDark: () => void;
 }
-
 export default function Footer({ T, dark, onToggleDark }: Props) {
   const { i18n } = useTranslation();
 
@@ -23,8 +22,7 @@ export default function Footer({ T, dark, onToggleDark }: Props) {
   };
 
   return (
-   <div className="flex items-center justify-between px-[18px] py-3">
-      {/* 왼쪽 그룹: 다크모드 & 언어 설정 (서로 붙어 있음) */}
+    <div className="flex items-center justify-between px-[18px] py-3">
       <div className="flex gap-1.5">
         <button
           onClick={onToggleDark}
@@ -41,9 +39,8 @@ export default function Footer({ T, dark, onToggleDark }: Props) {
         </button>
       </div>
 
-  
-      <div className="flex-1 ml-10"> {/* ml-4로 최소 간격 확보 후 나머지 공간 채우기 */}
-        <button 
+      <div className="flex-1 ml-10">
+        <button
           onClick={openLogin}
           className="w-full h-9 bg-gradient-to-r from-[#FF6B00] to-[#FF9500] border-none rounded-lg text-white text-xs font-bold cursor-pointer hover:opacity-90 transition-opacity"
         >

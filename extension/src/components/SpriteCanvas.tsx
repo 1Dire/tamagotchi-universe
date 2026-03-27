@@ -19,20 +19,18 @@ export default function SpriteCanvas({
   const [rawSize, setRawSize] = useState({ w: 0, h: 0 });
 
   useEffect(() => {
-    // 1. 애니메이션 설정 및 경로 정규화
     const animKey = anim.replace('anim-', '').toUpperCase();
     const fileName = animKey === 'ATTACK' ? 'ATTACK 1' : animKey;
     const folderName = characterId === 'gray_cat' ? 'Graycat' : 'Cat';
     
     const { frames, fps } = frameConfig[animKey] || { frames: 1, fps: 8 };
 
-    // 2. 이미지 객체 생성 및 익스텐션 에셋 경로 할당
     const img = new Image();
     img.src = chrome.runtime.getURL(`Sprites/${folderName}/${fileName}.png`);
 
     let currentFrame = 0;
 
-    // 3. 렌더링 루프 설정
+    // 렌더링 루프 설정
     const startAnimation = () => {
       const canvas = canvasRef.current;
       if (!canvas || img.width === 0) return;
@@ -40,7 +38,7 @@ export default function SpriteCanvas({
       const frameWidth = img.width / frames;
       const frameHeight = img.height;
       
-      // 캔버스 실제 픽셀 해상도 동기화 (CSS 크기 아님)
+      // 캔버스 실제 픽셀 해상도 동기화 
       canvas.width = frameWidth;
       canvas.height = frameHeight;
       setRawSize({ w: frameWidth, h: frameHeight });
@@ -56,7 +54,6 @@ export default function SpriteCanvas({
         window.clearInterval(timerRef.current);
       }
 
-      // 단일 프레임 드로잉 함수
       const drawNextFrame = () => {
         if (!canvasRef.current) return;
         
@@ -77,7 +74,7 @@ export default function SpriteCanvas({
 
     img.onload = startAnimation;
 
-    // 4. 언마운트 및 의존성 변경 시 클린업
+    // 언마운트 및 의존성 변경 시 클린업
     return () => {
       if (timerRef.current !== null) {
         window.clearInterval(timerRef.current);

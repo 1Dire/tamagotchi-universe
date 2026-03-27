@@ -1,4 +1,7 @@
 {
+  "msg_hungry":        "I'm hungry~ Feed me! 🍚",
+  "msg_error_console": "Something went wrong 🔍 Check the console",
+  "msg_storage_error": "Couldn't load saved data 😢",
   "character": {
     "select": "Select a character",
     "free": "FREE",
