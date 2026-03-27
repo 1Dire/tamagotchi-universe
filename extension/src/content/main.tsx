@@ -1,16 +1,17 @@
 // src/content/main.tsx
+import React from "react";
 import ReactDOM from "react-dom/client";
 import "@/i18n";
 import App from "@/content/views/App";
 import tailwindStyles from '@/styles/tailwind.css?inline';
 
-const hostDiv = document.createElement("div");
+export const hostDiv = document.createElement("div");
 hostDiv.id = "tamagotchi-universe-host";
 hostDiv.style.cssText = `
   position: fixed !important;
   inset: 0 !important;
   z-index: 2147483645 !important;
-  pointer-events: none !important;
+  pointer-events: none;
 `;
 document.body.appendChild(hostDiv);
 
@@ -26,7 +27,7 @@ fontStyle.textContent = `
 `;
 shadowRoot.appendChild(fontStyle);
 
-const renderContainer = document.createElement("div");
+export const renderContainer = document.createElement("div");  // ✅ export
 renderContainer.style.cssText = `
   position: fixed;
   inset: 0;

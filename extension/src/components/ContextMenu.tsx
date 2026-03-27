@@ -1,5 +1,6 @@
 // src/components/ContextMenu.tsx
-import React, { useEffect, useRef } from "react";
+import  { useEffect, useRef } from "react";
+import ReactDOM from "react-dom";
 
 interface MenuItem {
   icon: string;
@@ -18,11 +19,10 @@ interface Props {
 export default function ContextMenu({ x, y, items, onClose, dark }: Props) {
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // 색상 — 동적이라 인라인 style로 처리
-  const bg     = dark ? '#1c1c1e'              : '#ffffff';
-  const border = dark ? 'rgba(255,255,255,0.1)': 'rgba(0,0,0,0.1)';
-  const text   = dark ? '#f5f5f7'              : '#1c1c1e';
-  const hover  = dark ? 'rgba(255,255,255,0.08)': 'rgba(0,0,0,0.05)';
+  const bg     = dark ? '#1c1c1e'               : '#ffffff';
+  const border = dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+  const text   = dark ? '#f5f5f7'               : '#1c1c1e';
+  const hover  = dark ? 'rgba(255,255,255,0.12)': 'rgba(0,0,0,0.08)';
   const shadow = dark ? '0 8px 24px rgba(0,0,0,0.5)' : '0 4px 20px rgba(0,0,0,0.12)';
 
   useEffect(() => {
@@ -39,29 +39,52 @@ export default function ContextMenu({ x, y, items, onClose, dark }: Props) {
   }, [onClose]);
 
   const menuW = 168;
-  const menuH = items.length * 36 + 16;
+  const menuH = items.length * 40 + 8;
   const left  = Math.min(x, window.innerWidth  - menuW - 8);
   const top   = Math.min(y, window.innerHeight - menuH - 8);
 
-  return (
+  return ReactDOM.createPortal(
     <div
       ref={menuRef}
-      className="fixed p-1 rounded-lg pointer-events-auto"
-      style={{ left, top, width: menuW, background: bg, border: `0.5px solid ${border}`, boxShadow: shadow, zIndex: 2147483647 }}
+      style={{
+        position:     'fixed',
+        left, top,
+        width:        menuW,
+        background:   bg,
+        border:       `0.5px solid ${border}`,
+        borderRadius: 8,
+        overflow:     'hidden',
+        boxShadow:    shadow,
+        zIndex:       2147483647,
+        fontFamily:   "'Noto Sans KR', 'Noto Sans', sans-serif",
+      }}
     >
       {items.map((item, i) => (
         <div
           key={i}
           onClick={() => { item.onClick(); onClose(); }}
-          className="flex items-center gap-2 px-2.5 py-2 rounded-md text-[13px] font-medium cursor-pointer transition-colors"
-          style={{ color: text }}
+          style={{
+            display:     'flex',
+            alignItems:  'center',
+            gap:         8,
+            padding:     '10px 12px',
+            fontSize:    13,
+            fontWeight:  500,
+            color:       text,
+            cursor:      'pointer',
+            transition:  'background 0.15s',
+            background:  'transparent',
+          }}
           onMouseEnter={e => (e.currentTarget.style.background = hover)}
           onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
         >
-          <span className="w-4 text-center text-sm shrink-0">{item.icon}</span>
+          <span style={{ fontSize: 14, width: 16, textAlign: 'center', flexShrink: 0 }}>
+            {item.icon}
+          </span>
           {item.label}
         </div>
       ))}
-    </div>
+    </div>,
+    document.body  // ✅ body에 직접 마운트
   );
 }

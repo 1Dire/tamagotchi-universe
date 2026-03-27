@@ -10,14 +10,14 @@ interface CatState {
   facingLeft: boolean;
 }
 
-const BEHAVIOR_DURATION: Record<string, [number, number]> = {
+const BEHAVIOR_DURATION: Partial<Record<Anim, [number, number]>> = {
   IDLE: [1500, 4000],
   WALK: [2000, 5000],
   RUN:  [1000, 2500],
   JUMP: [600,  600],
 };
 
-const SPEED: Record<string, number> = {
+const SPEED: Record<Anim, number> = {
   IDLE: 0, WALK: 1.2, RUN: 2.8, JUMP: 0, HURT: 0,
 };
 
@@ -38,34 +38,33 @@ function randBetween(min: number, max: number) {
 }
 
 export function useAutoWalk(characterW = 48, characterH = 48) {
-  const floorY = () => window.innerHeight - characterH - 20;
+  const floorY = useCallback(() => window.innerHeight - characterH - 20, [characterH]);
+  const minX   = useCallback(() => EDGE_MARGIN, []);
+  const maxX   = useCallback(() => window.innerWidth - characterW - EDGE_MARGIN, [characterW]);
 
-  const [state, setState] = useState<CatState>({
+  const [state, setState] = useState<CatState>(() => ({
     x:          window.innerWidth - characterW - EDGE_MARGIN,
-    screenY:    floorY(),
+    screenY:    window.innerHeight - characterH - 20,
     anim:       "IDLE",
     facingLeft: false,
-  });
+  }));
 
-  const stateRef   = useRef(state);
-  stateRef.current = state;
+  const stateRef    = useRef(state);
+  stateRef.current  = state;
 
-  const isDragging = useRef(false);
-  const isFalling  = useRef(false);
-  const isPaused   = useRef(false);   // ✅ 추가
-  const velocityY  = useRef(0);
-
+  const isDragging  = useRef(false);
+  const isFalling   = useRef(false);
+  const isPaused    = useRef(false);
+  const velocityY   = useRef(0);
   const animTimerRef = useRef<number | null>(null);
   const moveTimerRef = useRef<number | null>(null);
   const fallTimerRef = useRef<number | null>(null);
 
-  const minX = () => EDGE_MARGIN;
-  const maxX = () => window.innerWidth - characterW - EDGE_MARGIN;
-
   const scheduleBehavior = useCallback(() => {
     if (isFalling.current || isPaused.current) return;
-    const next = pickNextAnim();
-    const duration = randBetween(...BEHAVIOR_DURATION[next] as [number, number]);
+    const next     = pickNextAnim();
+    const [min, max] = BEHAVIOR_DURATION[next] ?? [1000, 2000];
+    const duration = randBetween(min, max);
 
     if (next === "JUMP") {
       setState((prev) => ({ ...prev, anim: "JUMP" }));
@@ -80,6 +79,7 @@ export function useAutoWalk(characterW = 48, characterH = 48) {
     animTimerRef.current = window.setTimeout(scheduleBehavior, duration);
   }, []);
 
+  // 이동 루프
   useEffect(() => {
     const tick = () => {
       if (isDragging.current || isFalling.current || isPaused.current) return;
@@ -99,12 +99,13 @@ export function useAutoWalk(characterW = 48, characterH = 48) {
 
     moveTimerRef.current = window.setInterval(tick, 1000 / 60);
     return () => { if (moveTimerRef.current) window.clearInterval(moveTimerRef.current); };
-  }, [characterW]);
+  }, [characterW, minX, maxX]);
 
+  // 행동 스케줄 시작
   useEffect(() => {
     scheduleBehavior();
     return () => { if (animTimerRef.current) window.clearTimeout(animTimerRef.current); };
-  }, []);
+  }, [scheduleBehavior]);
 
   const startFalling = useCallback(() => {
     isFalling.current = true;
@@ -116,7 +117,6 @@ export function useAutoWalk(characterW = 48, characterH = 48) {
       setState((prev) => {
         const nextY = prev.screenY + velocityY.current;
         const floor = floorY();
-
         if (nextY >= floor) {
           const bounce = Math.abs(velocityY.current) * BOUNCE;
           if (bounce < 1) {
@@ -132,23 +132,21 @@ export function useAutoWalk(characterW = 48, characterH = 48) {
         return { ...prev, screenY: nextY };
       });
     }, 1000 / 60);
-  }, [scheduleBehavior]);
+  }, [floorY, scheduleBehavior]);
 
-  // ✅ pause: IDLE로 멈추고 타이머 정지
   const pause = useCallback(() => {
     isPaused.current = true;
     if (animTimerRef.current) window.clearTimeout(animTimerRef.current);
     setState((prev) => ({ ...prev, anim: "IDLE" }));
   }, []);
 
-  // ✅ resume: 자동이동 재개
   const resume = useCallback(() => {
     isPaused.current = false;
     scheduleBehavior();
   }, [scheduleBehavior]);
 
   const onDragStart = useCallback((e: React.MouseEvent) => {
-    if (e.button === 2) return;  // 우클릭 무시
+    if (e.button === 2) return;
     e.preventDefault();
     isDragging.current = true;
     isFalling.current  = false;
@@ -165,8 +163,8 @@ export function useAutoWalk(characterW = 48, characterH = 48) {
     let prevTime = Date.now();
 
     const onMouseMove = (me: MouseEvent) => {
-      const nx = Math.max(minX(), Math.min(me.clientX - startMouseX + startCharX, maxX()));
-      const ny = Math.max(0, Math.min(me.clientY - startMouseY + startCharY, floorY()));
+      const nx  = Math.max(minX(), Math.min(me.clientX - startMouseX + startCharX, maxX()));
+      const ny  = Math.max(0, Math.min(me.clientY - startMouseY + startCharY, floorY()));
       const now = Date.now();
       const dt  = Math.max(1, now - prevTime);
       velocityY.current = ((ny - prevY) / dt) * 16;
@@ -179,18 +177,16 @@ export function useAutoWalk(characterW = 48, characterH = 48) {
       isDragging.current = false;
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup",   onMouseUp);
-
-      const onFloor = Math.abs(stateRef.current.screenY - floorY()) < 6;
-      if (!onFloor) {
-        startFalling();
-      } else {
+      if (Math.abs(stateRef.current.screenY - floorY()) < 6) {
         scheduleBehavior();
+      } else {
+        startFalling();
       }
     };
 
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseup",   onMouseUp);
-  }, [scheduleBehavior, startFalling]);
+  }, [minX, maxX, floorY, scheduleBehavior, startFalling]);
 
   return { ...state, onDragStart, pause, resume };
 }

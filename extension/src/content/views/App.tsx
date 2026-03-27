@@ -1,5 +1,5 @@
 // src/content/views/App.tsx
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import SpriteCanvas from "@/components/SpriteCanvas";
 import SpeechBubble from "@/components/SpeechBubble";
@@ -17,34 +17,29 @@ export default function App() {
   const { t } = useTranslation();
   const { bubbles, addBubble, removeBubble, langReady } = useBubbles();
   const [characterId, setCharacterId] = useState<string | null>(null);
-  const [dark, setDark] = useState(false);
-  const initialized = useRef(false);
+  const [dark, setDark]               = useState(false);
+  const [menu, setMenu]               = useState<{ x: number; y: number } | null>(null);
+  const initialized                   = useRef(false);
   const { x, screenY, anim, facingLeft, onDragStart, pause, resume } = useAutoWalk(CHAR_W, CHAR_H);
-  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
 
-  // ✅ darkMode만 마운트 즉시 읽기 — langReady 기다리지 않음
+  // darkMode 로드 + 실시간 반영
   useEffect(() => {
     if (typeof chrome === "undefined" || !chrome.storage) return;
-
     chrome.storage.sync.get("darkMode", (res) => {
       if (typeof res.darkMode === "boolean") setDark(res.darkMode);
     });
-
-    const handleChange = (changes: Record<string, chrome.storage.StorageChange>) => {
-      if (typeof changes.darkMode?.newValue === "boolean") {
-        setDark(changes.darkMode.newValue);
-      }
+    const onChange = (changes: Record<string, chrome.storage.StorageChange>) => {
+      if (typeof changes.darkMode?.newValue === "boolean") setDark(changes.darkMode.newValue);
     };
-    chrome.storage.onChanged.addListener(handleChange);
-    return () => chrome.storage.onChanged.removeListener(handleChange);
+    chrome.storage.onChanged.addListener(onChange);
+    return () => chrome.storage.onChanged.removeListener(onChange);
   }, []);
 
-  // 캐릭터 로드 — langReady 후
+  // 캐릭터 로드
   useEffect(() => {
     if (!langReady || initialized.current) return;
     initialized.current = true;
     addBubble(t("msg_hungry"));
-
     if (typeof chrome !== "undefined" && chrome.storage) {
       chrome.storage.sync.get("tamagotchi_data", (res: { tamagotchi_data?: TamagotchiData }) => {
         if (chrome.runtime.lastError) {
@@ -60,29 +55,29 @@ export default function App() {
     }
   }, [langReady]);
 
-  const config = CHARACTERS.find((c) => c.id === characterId);
-  if (!config || !characterId) return null;
-
-  const handleContextMenu = (e: React.MouseEvent) => {
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     pause();
     setMenu({ x: e.clientX, y: e.clientY });
-  };
+  }, [pause]);
 
-  const handleMenuClose = () => {
+  const handleMenuClose = useCallback(() => {
     setMenu(null);
     resume();
-  };
+  }, [resume]);
 
   const menuItems = [
     {
       icon: '🪵',
       label: '플랫폼 생성',
       onClick: () => {
-        // 다음 단계에서 구현
+        console.log('[TamagotchiUniverse] 플랫폼 생성 클릭');
       },
     },
   ];
+
+  const config = CHARACTERS.find((c) => c.id === characterId);
+  if (!config || !characterId) return null;
 
   return (
     <>
