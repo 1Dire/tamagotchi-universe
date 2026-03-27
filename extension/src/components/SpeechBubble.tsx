@@ -1,5 +1,5 @@
 // src/components/SpeechBubble.tsx
-import React, { useEffect } from "react";
+import  { useEffect, useRef } from "react";
 
 interface Props {
   message: string;
@@ -8,14 +8,17 @@ interface Props {
 }
 
 export default function SpeechBubble({ message, onClose, isError }: Props) {
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
-    const timer = setTimeout(onClose, isError ? 6000 : 4000);
+    const timer = setTimeout(() => onCloseRef.current(), isError ? 6000 : 4000);
     return () => clearTimeout(timer);
-  }, [onClose, isError]);
+  }, []);
 
   return (
     <div
-      onClick={onClose}
+      onClick={() => onCloseRef.current()}
       style={{
         position: 'relative',
         background: isError ? '#fff0f0' : '#ffffff',
@@ -26,26 +29,30 @@ export default function SpeechBubble({ message, onClose, isError }: Props) {
         padding: '8px 12px',
         borderRadius: '12px',
         boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
-        marginBottom: '10px',
-        pointerEvents: 'auto',
+        marginBottom: '6px',
         whiteSpace: 'nowrap',
         maxWidth: '220px',
         lineHeight: '1.4',
         border: `1.5px solid ${isError ? '#ffcccc' : '#eee'}`,
         cursor: 'pointer',
+        pointerEvents: 'auto',
       }}
     >
       {isError ? '⚠️ ' : ''}{message}
       <div style={{
-        position: 'absolute', bottom: '-8px', right: '24px',
+        position: 'absolute', bottom: '-8px',
+        left: '50%', transform: 'translateX(-50%)',
         width: 0, height: 0,
-        borderLeft: '6px solid transparent', borderRight: '6px solid transparent',
+        borderLeft: '6px solid transparent',
+        borderRight: '6px solid transparent',
         borderTop: `8px solid ${isError ? '#ffcccc' : '#eee'}`,
       }} />
       <div style={{
-        position: 'absolute', bottom: '-6px', right: '25px',
+        position: 'absolute', bottom: '-6px',
+        left: '50%', transform: 'translateX(-50%)',
         width: 0, height: 0,
-        borderLeft: '5px solid transparent', borderRight: '5px solid transparent',
+        borderLeft: '5px solid transparent',
+        borderRight: '5px solid transparent',
         borderTop: `7px solid ${isError ? '#fff0f0' : '#ffffff'}`,
       }} />
     </div>

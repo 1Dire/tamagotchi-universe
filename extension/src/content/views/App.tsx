@@ -4,14 +4,21 @@ import { useTranslation } from "react-i18next";
 import SpriteCanvas from "@/components/SpriteCanvas";
 import SpeechBubble from "@/components/SpeechBubble";
 import { useBubbles } from "@/hooks/useBubbles";
+import { useAutoWalk } from "@/hooks/useAutoWalk";
 import { CHARACTERS } from "@/components/CharacterSelect";
-import { TamagotchiData } from "@/types/tamagotchi";  // ✅ 타입 중앙 관리
+import { TamagotchiData } from "@/types/tamagotchi";
+
+const CHAR_SCALE = 1.5;
+const CHAR_W = 32 * CHAR_SCALE;
+const BUBBLE_W = 220;
+const SCREEN_MARGIN = 8;
 
 export default function App() {
   const { t } = useTranslation();
   const { bubbles, addBubble, removeBubble, langReady } = useBubbles();
   const [characterId, setCharacterId] = useState<string | null>(null);
   const initialized = useRef(false);
+  const { x, anim, facingLeft } = useAutoWalk(CHAR_W);
 
   useEffect(() => {
     if (!langReady || initialized.current) return;
@@ -36,8 +43,29 @@ export default function App() {
 
   const config = CHARACTERS.find((c) => c.id === characterId);
 
+  const containerW = Math.max(CHAR_W, BUBBLE_W);
+  const containerLeft = Math.max(
+    SCREEN_MARGIN,
+    Math.min(
+      x + CHAR_W / 2 - containerW / 2,
+      window.innerWidth - containerW - SCREEN_MARGIN
+    )
+  );
+
+  if (!config || !characterId) return null;
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+    <div style={{
+      position: 'fixed',
+      bottom: 20,
+      left: containerLeft,
+      width: containerW,
+      zIndex: 2147483645,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      pointerEvents: 'none',
+    }}>
       {bubbles.map((b) => (
         <SpeechBubble
           key={b.id}
@@ -46,16 +74,18 @@ export default function App() {
           onClose={() => removeBubble(b.id)}
         />
       ))}
-      {config && characterId && (
-        <div style={{ pointerEvents: 'auto', cursor: 'pointer' }}>
-          <SpriteCanvas
-            characterId={characterId}
-            anim="IDLE"
-            frameConfig={config.frameConfig}
-            scale={1.5}
-          />
-        </div>
-      )}
+      <div style={{
+        transform: facingLeft ? 'scaleX(1)' : 'scaleX(-1)',
+        pointerEvents: 'auto',
+        cursor: 'pointer',
+      }}>
+        <SpriteCanvas
+          characterId={characterId}
+          anim={anim}
+          frameConfig={config.frameConfig}
+          scale={CHAR_SCALE}
+        />
+      </div>
     </div>
   );
 }
